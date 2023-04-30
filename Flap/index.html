@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flappy Bird</title>
+    <style>
+        body {
+            background-image: url(bg.jpg);
+            background-size: cover;
+        }
+        #bird {
+            position: absolute;
+            width: 42px;
+            height: 42px;
+            background-image: url(bird.png);
+            background-size: cover;
+        }
+        .pipe {
+            position: absolute;
+            width: 108px;
+            background-image: url(pipe.jpg);
+            background-size: cover;
+        }
+        #score {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            color: white;
+        }
+        #start-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="bird"></div>
+    <div id="score">0</div>
+    <div id="start-message">Press "t" to start</div>
+    <script>
+        var bird = document.getElementById("bird");
+        var scoreElement = document.getElementById("score");
+        var startMessage = document.getElementById("start-message");
+        var birdY = 250;
+        var birdVY = 0;
+        var gravity = 1;
+        var score = 0;
+        var playing = false;
+        var pipeDistance = 15 * 50; // Initial distance between pipes (in pixels)
+
+        function jump() {
+            birdVY = -10;
+        }
+
+        document.onkeydown = function(e) {
+            if (e.keyCode == 32) {
+                jump();
+            } else if (e.keyCode == 84) {
+                playing = true;
+                startMessage.style.display = "none";
+            }
+        }
+
+        setInterval(function() {
+            if (playing) {
+                birdVY += gravity;
+                birdY += birdVY;
+                bird.style.top = birdY + "px";
+
+                if (birdY > window.innerHeight) {
+                    playing = false;
+                    alert("Game Over! Your score was " + score);
+                    score = 0;
+                    scoreElement.innerHTML = score;
+                    startMessage.style.display = "block";
+                }
+
+                var pipes = document.getElementsByClassName("pipe");
+                for (var i = 0; i < pipes.length; i++) {
+                    var pipeX = parseInt(pipes[i].style.left);
+                    pipeX -= 5;
+                    if (pipeX < -100) {
+                        document.body.removeChild(pipes[i]);
+                        i--;
+                    } else {
+                        pipes[i].style.left = pipeX + "px";
+                        if (pipeX <= 20 && pipeX >= -30) {
+                            var pipeY = parseInt(pipes[i].style.height);
+                            if (pipes[i].style.bottom) {
+                                if (birdY + 20 > window.innerHeight - pipeY) {
+                                    playing = false;
+                                    alert("Game Over! Your score was " + score);
+                                    score = 0;
+                                    scoreElement.innerHTML = score;
+                                    startMessage.style.display = "block";
+                                }
+                            } else {
+                                if (birdY < pipeY) {
+                                    playing = false;
+                                    alert("Game Over! Your score was " + score);
+                                    score = 0;
+                                    scoreElement.innerHTML = score;
+                                    startMessage.style.display = "block";
+                                }
+                            }
+                        }
+                    }
+                }
+
+                var lastPipe = pipes[pipes.length - 1];
+                if (!lastPipe || parseInt(lastPipe.style.left) <= window.innerWidth - pipeDistance) {
+                    var gapY = Math.random() * (window.innerHeight - 200) + 100;
+                    var topPipe = document.createElement("div");
+                    topPipe.className = "pipe";
+                    topPipe.style.height = gapY + "px";
+                    topPipe.style.left = window.innerWidth + "px";
+                    document.body.appendChild(topPipe);
+                    var bottomPipe = document.createElement("div");
+                    bottomPipe.className = "pipe";
+                    bottomPipe.style.height = (window.innerHeight - gapY - 100) + "px";
+                    bottomPipe.style.bottom = "0";
+                    bottomPipe.style.left = window.innerWidth + "px";
+                    document.body.appendChild(bottomPipe);
+                    score++;
+                    scoreElement.innerHTML = score;
+
+                    pipeDistance -= 2.5; // Decrease distance between pipes
+                }
+            }
+        }, 20);
+    </script>
+</body>
+</html>

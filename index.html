@@ -51,15 +51,27 @@
       <button onclick="toggleDescription0()">Show/Hide Description</button>
       <p id="description0" style="display:none;">
   <br>
-  <br>Up,Down,Left,Right Controls
-  <br>"QWE" "A" "D" "ZXC"   8directioal shooting
-  <br>"S" pickup and drop bomb/redirectionbox  
-        
-        <br> Shoot bombs to make them explode
-        <br> bring all snakes to their homes circles to circles
+  <br>W = up
+  <br>X = Down
+  <br>A = left
+  <br>D = Right
+  <br>S = Pickup/Drop
+  <br>"UIOJLM" shooting controls  8direction
   
    
-   
+  <h2>Flap</h2>
+  <a href="Flap/index.html"><img src="flap.jpg" alt="flap" style="width:500px;height:500px;"></a>
+  
+  <button onclick="location.href='Flap/index.html';">Play</button>
+  
+  <button onclick="toggleDescriptionq()">Show/Hide Description</button>
+  <p id="descriptionq" style="display:none;">
+<br> ur magpie
+<br>ya press Spacebar to flap
+<br> dodge cactus
+<br>  
+
+
    
       <h2>3D Shoot</h2>
     <a href="3DShoot/index.htm"><img src="3dshoot.jpg" alt="3dshoot" style="width:500px;height:500px;"></a>
@@ -377,6 +389,14 @@
       }
       function toggleDescription0() {
         var x = document.getElementById("description0");
+        if (x.style.display === "none") {
+          x.style.display = "block";
+        } else {
+          x.style.display = "none";
+        }
+      }
+      function toggleDescriptionq() {
+        var x = document.getElementById("descriptionq");
         if (x.style.display === "none") {
           x.style.display = "block";
         } else {

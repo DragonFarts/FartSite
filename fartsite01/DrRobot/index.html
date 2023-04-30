@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Robotnik's Mean Bean Machine Clone</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="game" width="192" height="384"></canvas>
+    <button id="startButton" onclick="startGame()">Start Game</button>
+    <script>
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+
+        class Bean {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(32 * this.x, 32 * this.y, 32, 32);
+            }
+        }
+
+        function randomColor() {
+            const colors = ["red", "green", "blue", "yellow", "purple"];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        let grid = createEmptyGrid(6, 12);
+        let currentBean, nextBean;
+        let rotation = 0;
+        let score = 0;
+
+        function createEmptyGrid(cols, rows) {
+            return Array.from({ length: cols }, () => Array(rows).fill(null));
+        }
+
+        function spawnBean() {
+            const randomCol = Math.floor(Math.random() * (grid.length - 1));
+            const color1 = randomColor();
+            const color2 = randomColor();
+            currentBean = [new Bean(randomCol, 0, color1), new Bean(randomCol + 1, 0, color2)];
+            nextBean = [new Bean(randomCol, 1, randomColor()), new Bean(randomCol + 1, 1, randomColor())];
+        }
+
+        function canMove(dx, dy) {
+            return currentBean.every(bean => {
+                const newX = bean.x + dx;
+                const newY = bean.y + dy;
+                return newX >= 0 && newX < grid.length && newY >= 0 && newY < grid[0].length && !grid[newX][newY];
+            });
+        }
+
+        function move(dx, dy) {
+            if (canMove(dx, dy)) {
+                currentBean.forEach(bean => {
+                    bean.x += dx;
+                    bean.y += dy;
+                });
+            }
+        }
+
+        function rotate() {
+            const pivot = currentBean[0];
+            const dx = currentBean[1].x - pivot.x;
+            const dy = currentBean[1].y - pivot.y;
+            const newX = pivot.x - dy;
+            const newY = pivot.y + dx;
+            if (newX >= 0 && newX < grid.length && newY >= 0 && newY < grid[0].length && !grid[newX][newY]) {
+                currentBean[1].x = newX;
+                currentBean[1].y = newY;
+            }
+        }
+
+function beansFall() {
+  for (let col = 0; col < grid.length; col++) {
+    for (let row = grid[col].length - 1; row >= 0; row--) {
+      const bean = grid[col][row];
+      if (bean && row < grid[col].length - 1 && grid[col][row + 1] === null) {
+        grid[col][row] = null;
+        grid[col][row + 1] = bean;
+        bean.y += 1;
+      }
+    }
+  }
+}
+
+
+        function removeAndScore() {
+            const visited = new Set();
+            const toRemove = new Set();
+
+            function dfs(x, y, color) {
+                if (x < 0 || x >= grid.length || y < 0 || y >= grid[0].length || visited.has(`${x},${y}`) || grid[x][y]?.color !== color) {
+                    return 0;
+                }
+                visited.add(`${x},${y}`);
+                let count = 1;
+                count += dfs(x - 1, y, color);
+                count += dfs(x + 1, y, color);
+                count += dfs(x, y - 1, color);
+                count += dfs(x, y + 1, color);
+                return count;
+            }
+
+            for (let x = 0; x < grid.length; x++) {
+                for (let y = 0; y < grid[0].length; y++) {
+                    const bean = grid[x][y];
+                    if (bean) {
+                        visited.clear();
+                        const count = dfs(x, y, bean.color);
+                        if (count >= 4) {
+                            visited.forEach(coord => {
+                                toRemove.add(coord);
+                            });
+                        }
+                    }
+                }
+            }
+
+
+            let removedBeans = 0;
+            toRemove.forEach(coord => {
+                const [x, y] = coord.split(',').map(Number);
+                grid[x][y] = null;
+                removedBeans++;
+            });
+
+            if (removedBeans > 0) {
+                const multiplier = removedBeans - 3;
+                const chainScore = removedBeans * 10 * multiplier;
+                score += chainScore;
+            }
+
+            // Apply the bean height dropped scoring
+            score += removedBeans;
+            return removedBeans > 0;
+        }
+
+let keyDown = false;
+
+function gameLoop() {
+    // Handle input
+    document.addEventListener("keydown", event => {
+        if (!keyDown) {
+            keyDown = true;
+            switch (event.key) {
+                case "ArrowDown":
+                    move(0, 1);
+                    break;
+                case "ArrowLeft":
+                    move(-1, 0);
+                    break;
+                case "ArrowRight":
+                    move(1, 0);
+                    break;
+                case "ArrowUp":
+                    rotate();
+                    break;
+            }
+        }
+    });
+
+    document.addEventListener("keyup", event => {
+        keyDown = false;
+    });
+
+
+
+    // Draw game
+    draw();
+    beansFall();
+
+    // Request the next frame
+    requestAnimationFrame(gameLoop);
+}
+
+
+function update() {
+    setTimeout(() => {
+        if (!canMove(0, 1)) {
+            currentBean.forEach(bean => {
+                grid[bean.x][bean.y] = bean;
+            });
+            spawnBean();
+            while (removeAndScore()) {
+                console.log('Score:', score);
+            }
+        } else {
+            move(0, 1);
+        }
+
+        // Recursively call the update function
+        update();
+    }, 500); // Set the timeout to 500ms for falling beans
+}
+
+
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let col = 0; col < grid.length; col++) {
+                for (let row = 0; row < grid[col].length; row++) {
+                    const bean = grid[col][row];
+                    if (bean) bean.draw();
+                }
+            }
+            currentBean.forEach(bean => bean.draw());
+            // nextBean.forEach(bean => bean.draw()); // Uncomment this line to draw the next bean pair
+        }
+
+function startGame() {
+    if (!currentBean) {
+        spawnBean();
+        gameLoop();
+        update();
+    }
+}
+
+        // Add game over and other features as desired.
+    </script>
+</body>
+</html>

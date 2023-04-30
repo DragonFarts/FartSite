@@ -1,0 +1,240 @@
+<head>
+    <style>
+        canvas {
+          background-image: radial-gradient(circle, rgba(35,35,35,3) 7px, transparent 5px),
+                            radial-gradient(circle, rgba(55,55,55,3) 9px, transparent 5px);
+          background-size: 20px 30px;
+          background-position: 0 0, 10px 15px;
+        }
+      </style>
+    <body>
+    <canvas id="gameCanvas" width="480" height="320" style="background-color: #000; display: block; margin: 0 auto;"></canvas>
+    <script>
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      let ballX = canvas.width / 2;
+      let ballY = canvas.height - 30;
+      let dx = 0.5;
+      let dy = -0.5;
+      let paddleWidth = 75;
+      let paddleHeight = 10;
+      let paddleX = (canvas.width - paddleWidth) / 2;
+      let rightPressed = false;
+      let leftPressed = false;
+      let score = 0;
+      let level = 1;
+    
+      const brickRowCount = 3;
+      const brickColumnCount = 5;
+      const brickWidth = 75;
+      const brickHeight = 20;
+      const brickPadding = 10;
+      const brickOffsetTop = 30;
+      const brickOffsetLeft = 30;
+      const generateSquarePattern = (ctx, size) => {
+  const colors = ['#FF4136', '#FF851B', '#FFDC00', '#2ECC40', '#0074D9', '#B10DC9'];
+  const rows = Math.floor(ctx.canvas.height / size);
+  const columns = Math.floor(ctx.canvas.width / size);
+
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      ctx.fillStyle = color;
+      ctx.fillRect(column * size, row * size, size, size);
+    }
+  }
+};
+
+const initializeBricks = () => {
+  const brickArray = [];
+  const brickColors = ['#FF4136', '#2ECC40', '#0074D9', '#FF851B', '#B10DC9', '#FFDC00', '#F012BE', '#7FDBFF'];
+
+  // generate random noise texture
+  const noiseCanvas = document.createElement('canvas');
+  noiseCanvas.width = brickWidth * 2;
+  noiseCanvas.height = brickHeight * 2;
+  const noiseCtx = noiseCanvas.getContext('2d');
+  const noiseData = noiseCtx.createImageData(brickWidth * 2, brickHeight * 2);
+
+  for (let i = 0; i < noiseData.data.length; i += 4) {
+    const value = Math.floor(Math.random() * 54);
+    noiseData.data[i] = value;
+    noiseData.data[i + 1] = Math.floor(Math.random() * 254);;
+    noiseData.data[i + 2] = Math.floor(Math.random() * 254);;
+    noiseData.data[i + 3] = Math.floor(Math.random() * 254);;
+  }
+
+  noiseCtx.putImageData(noiseData, 0, 0);
+
+  for (let i = 0; i < brickRowCount; i++) {
+    for (let j = 0; j < brickColumnCount; j++) {
+      const x = (j * (brickWidth + brickPadding)) + brickOffsetLeft;
+      const y = (i * (brickHeight + brickPadding)) + brickOffsetTop;
+      const status = 1;
+
+      // generate texture using noise function
+      const textureCanvas = document.createElement('canvas');
+      textureCanvas.width = brickWidth;
+      textureCanvas.height = brickHeight;
+      const textureCtx = textureCanvas.getContext('2d');
+
+      const noiseScale = Math.floor(Math.random() * 3000) + 10;
+      const noiseSeedX = Math.floor(Math.random() * 10000);
+      const noiseSeedY = Math.floor(Math.random() * 10000);
+
+      for (let iy = 0; iy < brickHeight; iy++) {
+        for (let ix = 0; ix < brickWidth; ix++) {
+          const nx = ix / brickWidth - 0.5;
+          const ny = iy / brickHeight - 0.5;
+          const randomNum = Math.floor(Math.random() * 21) + 9; // Generate random number between 1 and 108
+    const randomOffsetX = Math.floor(Math.random() * 321) - 0.5; // Generate random horizontal offset between -5 and 5
+    const randomOffsetY = Math.floor(Math.random() * 231) - 0.5; // Generate random vertical offset between -5 and 5
+    const randomScale = Math.random() * 0.5 + 0.5; // Generate random scale factor between 0.5 and 1.0
+
+    const noiseValue = noiseCtx.getImageData((noiseSeedX + (nx + randomOffsetX) * noiseScale * randomScale) % (brickWidth * 2), (noiseSeedY + (ny + randomOffsetY) * noiseScale * randomScale) % (brickHeight * 2), 1, 1).data[0] / randomNum;
+
+          const colorIndex = Math.floor(noiseValue * brickColors.length);
+          const color = brickColors[colorIndex];
+          textureCtx.fillStyle = color;
+          textureCtx.fillRect(ix, iy, 1, 1);
+        }
+      }
+
+      brickArray.push({
+        x,
+        y,
+        status,
+        texture: textureCanvas
+      });
+    }
+  }
+
+  return brickArray;
+};
+
+
+
+    
+      let bricks = initializeBricks();
+    
+      const drawElements = (type, x, y, w, h) => {
+        ctx.beginPath();
+        if (type === 'arc') ctx.arc(x, y, w, 0, Math.PI * 2);
+        else if (type === 'text') {
+          ctx.font = '16px Arial';
+          ctx.fillText('Score: ' + score + ' | Level: ' + level, x, y);
+        } else ctx.rect(x, y, w, h);
+        ctx.fillStyle = '#FFF';
+        ctx.fill();
+        ctx.closePath();
+        bricks.forEach((brick) => {
+  if (brick.status) {
+    ctx.drawImage(brick.texture, brick.x, brick.y, brickWidth, brickHeight);
+  }
+});
+
+      };
+    
+      const collisionDetection = () => {
+        bricks.forEach((brick, index) => {
+          if (brick.status) {
+            if (ballX > brick.x && ballX < brick.x + brickWidth && ballY > brick.y && ballY < brick.y + brickHeight) {
+              dy = -dy;
+              brick.status = 0;
+              score++;
+    
+              if (score === brickRowCount * (level*5)) {
+level++;
+dy = -dy * 1.1;
+bricks = initializeBricks();
+}
+}
+}
+});
+};
+
+const draw = () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  bricks.forEach((brick) => {
+    if (brick.status) {
+      ctx.drawImage(brick.texture, brick.x, brick.y, brickWidth, brickHeight);
+    }
+  });
+
+  // generate texture for paddle
+  const paddleCanvas = document.createElement('canvas');
+  paddleCanvas.width = paddleWidth;
+  paddleCanvas.height = paddleHeight;
+  const paddleCtx = paddleCanvas.getContext('2d');
+  const paddleGradient = paddleCtx.createLinearGradient(0, 0, paddleWidth, paddleHeight);
+  paddleGradient.addColorStop(0, '#FF4136');
+  paddleGradient.addColorStop(1, '#FFDC00');
+  paddleCtx.fillStyle = paddleGradient;
+  paddleCtx.fillRect(0, 0, paddleWidth, paddleHeight);
+
+  // generate texture for ball
+  const ballCanvas = document.createElement('canvas');
+  ballCanvas.width = 20;
+  ballCanvas.height = 20;
+  const ballCtx = ballCanvas.getContext('2d');
+  const ballGradient = ballCtx.createRadialGradient(10, 10, 0, 10, 10, 10);
+  ballGradient.addColorStop(0, '#0074D9');
+  ballGradient.addColorStop(1, '#7FDBFF');
+  ballCtx.fillStyle = ballGradient;
+  ballCtx.beginPath();
+  ballCtx.arc(10, 10, 10, 0, Math.PI * 2);
+  ballCtx.fill();
+
+  // draw paddle and ball with generated textures
+  ctx.drawImage(paddleCanvas, paddleX, canvas.height - paddleHeight);
+  ctx.drawImage(ballCanvas, ballX - 10, ballY - 10);
+
+  // update ball position and collision detection
+  if (ballX + dx < 10 || ballX + dx > canvas.width - 10) {
+    dx = -dx;
+  }
+  if (ballY + dy < 10) {
+    dy = -dy;
+  } else if (ballY + dy > canvas.height - 10) {
+    if (ballX > paddleX && ballX < paddleX + paddleWidth) {
+      dy = -dy;
+    } else if (ballY + dy > canvas.height) {
+      return;
+    }
+  }
+
+  ballX += dx;
+  ballY += dy;
+
+  // update paddle position
+  if (rightPressed && paddleX < canvas.width - paddleWidth) {
+    paddleX += 1;
+  }
+  if (leftPressed && paddleX > 0) {
+    paddleX -= 1;
+  }
+
+  // update score and level
+  collisionDetection();
+  drawElements('text', 8, 20, 'Score: ' + score + ' | Level: ' + level);
+
+  // request next animation frame
+  requestAnimationFrame(draw);
+};
+
+
+document.addEventListener('keydown', (e) => {
+if (e.key === 'ArrowRight') rightPressed = true;
+if (e.key === 'ArrowLeft') leftPressed = true;
+});
+
+document.addEventListener('keyup', (e) => {
+if (e.key === 'ArrowRight') rightPressed = false;
+if (e.key === 'ArrowLeft') leftPressed = false;
+});
+
+draw();
+
+</script>
+</body>
+</head>

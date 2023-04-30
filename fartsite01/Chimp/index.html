@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Generated Terrain with p5.js</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+  <style>body{padding:30px;}canvas{border:1px solid}</style>
+</head>
+<body>
+<script>
+  let canvasWidth = 800;
+  let canvasHeight = 600;
+  let movespeed = 0.1;
+  let terrain;
+  let player;
+  let projectiles = [];
+  let explosionRadius = 30;
+  let guiControls;
+  let simplex;
+
+  function setup() {
+    createCanvas(canvasWidth, canvasHeight);
+    simplex = new SimplexNoise();
+    terrain = new Terrain(canvasWidth, canvasHeight);
+    player = new Player(terrain);
+    setupGui();
+  }
+
+  function setupGui() {
+    guiControls = new function () {
+      this.angle = 45;
+      this.velocity = 5;
+      this.gravity = -1;
+    };
+
+    let gui = new dat.GUI();
+    gui.add(guiControls, 'angle', -180, 180);
+    gui.add(guiControls, 'velocity', 1, 20);
+    gui.add(guiControls, 'gravity', -5, 5);
+  }
+
+  function draw() {
+    background(220);
+    terrain.show();
+    player.show();
+    updateProjectiles();
+    checkCollisions();
+    handlePlayerMovement();
+}
+
+
+  function keyPressed() {
+    if (key === ' ') {
+      shootProjectile();
+    }
+}
+
+function keyReleased() {
+    return false; // prevent any default behavior
+}
+function handlePlayerMovement() {
+  if (keyIsDown(65) || keyIsDown(97)) {
+    player.move(-movespeed);
+  }
+  if (keyIsDown(68) || keyIsDown(100)) {
+    player.move(movespeed);
+  }
+}
+
+
+  function shootProjectile() {
+    let angle = radians(guiControls.angle);
+    let velocity = guiControls.velocity;
+    let projectile = new Projectile(player.x, player.y, angle, velocity);
+    projectiles.push(projectile);
+  }
+
+  function updateProjectiles() {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      projectiles[i].applyGravity(guiControls.gravity);
+      projectiles[i].update();
+      projectiles[i].show();
+      if (projectiles[i].offscreen()) {
+        projectiles.splice(i, 1);
+      }
+    }
+  }
+
+  function checkCollisions() {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      if (terrain.collides(projectiles[i])) {
+        let explosion = new Explosion(projectiles[i].x, projectiles[i].y, explosionRadius);
+        terrain.applyExplosion(explosion);
+        projectiles.splice(i, 1);
+      }
+    }
+  }
+
+  // Terrain Class
+  class Terrain {
+    constructor(width, height) {
+      this.width = width;
+      this.height = height;
+      this.buffer = createGraphics(width, height);
+      this.generate();
+    }
+
+    generate() {
+      this.buffer.strokeWeight(2);
+      this.buffer.stroke(0, 200, 0);
+      for (let x = 0; x < this.width; x++) {
+        let y = map(simplex.noise2D(x * 0.01, 0), -1, 1, this.height / 2, this.height);
+
+        this.buffer.line(x, y, x, this.height);
+  }
+}
+
+show() {
+  image(this.buffer, 0, 0);
+}
+
+getY(x) {
+  let y;
+  let minY = this.height;
+
+  for (let i = 0; i < this.height; i++) {
+    if (this.buffer.get(x, i)[1] > 0) {
+      if (i < minY) {
+        minY = i;
+      }
+    }
+  }
+  return minY;
+}
+
+
+collides(projectile) {
+  let x = floor(projectile.x);
+  let y = floor(projectile.y);
+  return this.buffer.get(x, y)[1] > 0;
+}
+
+applyExplosion(explosion) {
+  this.buffer.fill(0, 0, 0, 0);
+  this.buffer.stroke(0, 0, 0, 0);
+  this.buffer.ellipse(explosion.x, explosion.y, explosion.radius * 2);
+  this.buffer.loadPixels();
+  for (let x = -explosion.radius; x <= explosion.radius; x++) {
+    for (let y = -explosion.radius; y <= explosion.radius; y++) {
+      let d = dist(0, 0, x, y);
+      if (d < explosion.radius) {
+        this.buffer.set(explosion.x + x, explosion.y + y, color(0, 0, 0, 0));
+      }
+    }
+  }
+  this.buffer.updatePixels();
+}
+}
+
+// Player Class
+class Player {
+constructor(terrain) {
+this.x = 100;
+this.y = terrain.getY(this.x) - 20;
+this.size = 20;
+
+}
+show() {
+  fill(0);
+  rect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+}
+
+move(direction) {
+  let newX = this.x + direction * 10;
+  let newY = this.y;
+
+  // Apply gravity to the player's Y position
+  let gravity = guiControls.gravity;
+  this.vy += gravity * 0.1;
+  newY -= this.vy;
+
+  // Iterate over a range of Y values starting at the player's current Y position
+  for (let i = this.y; i <= this.y + 50; i++) {
+    // Check if the terrain collides with the player at the new position
+    if (terrain.buffer.get(newX, i)[1] > 0) {
+      // Set the new Y position to the highest Y value that the player can walk on
+      newY = i - 20;
+      this.vy = 0;
+      break;
+    }
+  }
+
+  // Update the player's position if there is no terrain collision
+  this.x = newX;
+  this.y = newY;
+}
+
+
+
+
+}
+
+// Projectile Class
+class Projectile {
+constructor(x, y, angle, velocity) {
+this.x = x;
+this.y = y;
+this.vx = velocity * cos(angle);
+this.vy = velocity * sin(angle);
+this.size = 10;
+}
+applyGravity(gravity) {
+  this.vy += gravity * 0.1;
+}
+
+update() {
+  this.x += this.vx;
+  this.y -= this.vy;
+}
+
+show() {
+  fill(255, 255, 0);
+  rect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+}
+
+offscreen() {
+  return this.x < 0 || this.x > canvasWidth || this.y < 0 || this.y > canvasHeight;
+}
+}
+// Explosion Class
+class Explosion {
+constructor(x, y, radius) {
+this.x = x;
+this.y = y;
+this.radius = radius;
+}
+}
+
+</script>
+</body>
+</html>

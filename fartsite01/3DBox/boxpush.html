@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid Game</title>
+<style>
+  .g{display:grid;grid-template-columns:repeat(32,32px);}
+  .c{width:32px;height:32px;border:1px solid #ccc;cursor:pointer;}
+  .w,.b,.o,.p,.l{background-size:cover;}
+</style>
+</head>
+<body>
+  <button id="saveToFile">Save to File</button>
+  <button id="loadFromFile">Load from File</button>
+  <input type="file" id="fileInput" style="display:none" accept=".grid">
+  
+  <button id="start">Start Game</button>
+  <select id="d">
+    <option value="w">Wall</option>
+    <option value="b">Box</option>
+    <option value="o">Goal</option>
+    <option value="p">Player</option>
+    <option value="l">Collectable</option>
+  </select>
+  <div class="g" id="g"></div>
+
+  <div>
+    <br>
+    Walls
+    <input type="file" id="wf" accept="image/*">
+    <br>
+    Boxes
+    <input type="file" id="bf" accept="image/*">
+    <br>
+    Goals
+    <input type="file" id="of" accept="image/*">
+    <br>
+    Player
+    <input type="file" id="pf" accept="image/*">
+    <br>
+    Collectables
+    <input type="file" id="lf" accept="image/*">
+  </div>
+
+
+  <script>  
+
+function saveToFile() {
+  const levelData = Array.from(g.children).map(c => c.classList.value);
+  const data = new Blob([JSON.stringify(levelData)], { type: 'application/json' });
+  const url = URL.createObjectURL(data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'level.grid';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadFromFile(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const levelData = JSON.parse(e.target.result);
+      Array.from(g.children).forEach((c, i) => {
+        c.className = 'c';
+        c.classList.add(...levelData[i].split(' '));
+      });
+//      alert('Level loaded!');
+    };
+    reader.readAsText(file);
+  } else {
+    alert('No file selected!');
+  }
+}
+document.getElementById('saveToFile').onclick = saveToFile;
+document.getElementById('loadFromFile').onclick = () => {
+  document.getElementById('fileInput').click();
+};
+document.getElementById('fileInput').onchange = loadFromFile;
+
+function loadDefaultImages() {
+  const images = {
+    w: 'wall.jpg',
+    b: 'box.jpg',
+    o: 'goal.jpg',
+    p: 'player.jpg',
+    l: 'item.jpg',
+  };
+  for (const cls in images) {
+    const img = new Image();
+    img.src = images[cls];
+    img.onload = () => {
+      const style = document.createElement('style');
+      style.innerHTML = `.${cls}{background-image:url(${img.src});}`;
+      document.head.appendChild(style);
+    };
+  }
+}
+
+loadDefaultImages();
+
+
+    function f(id,cls){const i=document.getElementById(id);i.addEventListener('change',e=>{const r=new FileReader();r.onload=()=>{const s=document.createElement('style');s.innerHTML=`.${cls}{background-image:url(${r.result});}`;document.head.appendChild(s);};r.readAsDataURL(e.target.files[0]);});}
+    f('wf','w');f('bf','b');f('of','o');f('pf','p');f('lf','l');
+    const g=document.getElementById('g');const d=document.getElementById('d');
+    for(let i=0;i<1024;i++){const c=document.createElement('div');c.className='c';c.onclick=()=>{c.classList.add(d.value);};g.appendChild(c);}
+
+    let player, goals = [], boxes = [], collectables = [], move = { x: 0, y: 0 };
+
+    function a(e) {const k = e.key.toLowerCase();if (k === 'q') {move = { x: -1, y: -1 };} else if (k === 'w') {move = { x: 0, y: -1 };} else if (k === 'e') {move = { x: 1, y: -1 };} else if (k === 'a') {move = { x: -1, y: 0 };} else if (k === 'd') {move = { x: 1, y: 0 };} else if (k === 'z') {move = { x: -1, y: 1 };} else if (k === 'x') {move = { x: 0, y: 1 };} else if (k === 'c') {move = { x: 1, y: 1 };} else {return;}m();}
+    function m() {
+  const nx = player.x + move.x, ny = player.y + move.y, nc = g.children[nx + ny * 32];
+  if (!nc.classList.contains('w')) {
+    const box = boxes.find(b => b.x === nx && b.y === ny);
+    if (box) {
+      const nnx = nx + move.x, nny = ny + move.y, nnc = g.children[nnx + nny * 32];
+      if (!nnc.classList.contains('w') && !boxes.find(b => b.x === nnx && b.y === nny)) {
+        box.x = nnx; box.y = nny;
+        nnc.classList.add('b'); nc.classList.remove('b');
+      }
+    } else {
+      const collectable = collectables.find(l => l.x === nx && l.y === ny);
+      if (collectable) {
+        collectables.splice(collectables.indexOf(collectable), 1);
+        nc.classList.remove('l');
+      }
+      player.x = nx; player.y = ny;
+      nc.classList.add('p'); g.children[player.x - move.x + (player.y - move.y) * 32].classList.remove('p');
+    }
+  }
+
+  if (goals.every(g => boxes.some(b => b.x === g.x && b.y === g.y)) && collectables.length === 0) {
+    alert('Level complete!');
+    document.removeEventListener('keydown', a);
+  }
+}
+
+  document.getElementById('start').onclick = () => {
+    player = { x: 0, y: 0 };
+    goals.length = boxes.length = collectables.length = 0;
+    Array.from(g.children).forEach((c, i) => {
+      const x = i % 32, y = Math.floor(i / 32);
+      if (c.classList.contains('p')) { player = { x, y }; }
+      if (c.classList.contains('o')) { goals.push({ x, y }); }
+      if (c.classList.contains('b')) { boxes.push({ x, y }); }
+      if (c.classList.contains('l')) { collectables.push({ x, y }); }
+    });
+    document.addEventListener('keydown', a);
+  };
+</script>
+</body>
+</html>
+ 

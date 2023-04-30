@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Box Push Game</title>
+    <style>
+        /* Add styles for the game grid */
+        #game-grid {
+            border-collapse: collapse;
+        }
+        #game-grid td {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #ccc;
+        }
+        /* Add styles for the level elements */
+        .wall, .player, .box, .goal {
+            background-size: cover;
+        }
+        .wall {
+            background-image: url('wall.jpg');
+        }
+        .player {
+            background-image: url('player.jpg');
+        }
+        .box {
+            background-image: url('box.jpg');
+        }
+        .goal {
+            background-image: url('goal.jpg');
+        }
+    </style>
+</head>
+<body>
+    <h1>Box Push Game</h1>
+    <label for="level-element">Choose a level element:</label>
+    <select id="level-element">
+        <option value="goal">Goal</option>
+        <option value="box">Box</option>
+        <option value="wall">Wall</option>
+        <option value="player">Player</option>
+    </select>
+    <table id="game-grid">
+    </table>
+
+    <script>
+        // Get references to the game grid and level element select
+        const gameGrid = document.querySelector('#game-grid');
+        const levelElementSelect = document.querySelector('#level-element');
+
+        // Generate the 16x16 grid
+        for (let i = 0; i < 16; i++) {
+            // Create a new row
+            const newRow = gameGrid.insertRow();
+            for (let j = 0; j < 16; j++) {
+                // Create a new cell
+                newRow.insertCell();
+            }
+        }
+
+        // Add event listener for clicks on the game grid
+        gameGrid.addEventListener('click', (event) => {
+            // Get the selected level element
+            const selectedElement = levelElementSelect.value;
+            // Get the clicked cell
+            const clickedCell = event.target;
+            // Check if the clicked cell is a table cell
+            if (clickedCell.tagName === 'TD') {
+                // Add the selected level element to the clicked cell
+                clickedCell.classList.add(selectedElement);
+                // Check if all goals have a box on them
+                checkLevelComplete();
+            }
+        });
+
+        // Add event listener for keydown events
+        document.addEventListener('keydown', (event) => {
+            // Get the player element
+            const player = gameGrid.querySelector('.player');
+            // Get the row and column of the player
+            const playerRow = player.parentNode.rowIndex;
+            const playerCol = player.cellIndex;
+            // Check which key was pressed
+            switch (event.key) {
+                case 'ArrowUp':
+                    // Move player up
+                    movePlayer(playerRow - 1, playerCol);
+                    break;
+                case 'ArrowDown':
+                    // Move player down
+                    movePlayer(playerRow + 1, playerCol);
+                    break;
+                case 'ArrowLeft':
+                    // Move player left
+                    movePlayer(playerRow, playerCol - 1);
+                    break;
+                case 'ArrowRight':
+                    // Move player right
+                    movePlayer(playerRow, playerCol + 1);
+                    break;
+            }
+            // Check if all goals have a box on them
+            checkLevelComplete();
+        });
+
+        function movePlayer(newRow, newCol) {
+    // Get the player element
+    const player = gameGrid.querySelector('.player');
+    // Get the new cell
+    const newRowElement = gameGrid.rows[newRow];
+    if (newRowElement) {
+        const newCell = newRowElement.cells[newCol];
+        if (newCell) {
+            // Check if the new cell is a wall
+            if (newCell.classList.contains('wall')) {
+                // Do not move the player
+                return;
+            }
+            // Check if the new cell is a box
+            if (newCell.classList.contains('box')) {
+                // Calculate the next row and column for the box
+                const nextRow = newRow * 2 - player.parentNode.rowIndex;
+                const nextCol = newCol * 2 - player.cellIndex;
+                // Move the box to its new position
+                moveBox(nextRow, nextCol);
+            }
+            // Move the player to its new position
+            player.classList.remove('player');
+            newCell.classList.add('player');
+        }
+    }
+}
+
+function moveBox(newRow, newCol) {
+    // Get the box element
+    const box = gameGrid.querySelector('.box');
+    // Get the new cell for the box
+    const newRowElement = gameGrid.rows[newRow];
+    if (newRowElement) {
+        const newCell = newRowElement.cells[newCol];
+        if (newCell) {
+            // Check if the new cell is a wall or another box
+            if (newCell.classList.contains('wall') || newCell.classList.contains('box')) {
+                // Do not move the box
+                return;
+            }
+            // Move the box to its new position
+            box.classList.remove('box');
+            newCell.classList.add('box');
+        }
+    }
+}
+
+function checkLevelComplete() {
+    // Get all goal elements
+    const goals = gameGrid.querySelectorAll('.goal');
+    // Check if all goals have a box on them
+    let levelComplete = true;
+    for (const goal of goals) {
+        if (!goal.classList.contains('box')) {
+            levelComplete = false;
+            break;
+        }
+    }
+    // Show level complete dialog if all goals have a box on them
+    if (levelComplete) {
+        alert('Level complete!');
+    }
+}
+</script>
+</html>

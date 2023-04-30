@@ -1,0 +1,48 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Room with Three.js</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="Level.js"></script>
+    <script src="texture.js"></script>
+    <script src="Movement.js"></script>
+    <script src="vegemite.js"></script>
+    <script src="cheese.js"></script>
+    <script src="fire.js"></script>
+
+
+
+    <script>
+
+const level = new Level(createFloorTexture, createWallTexture, createRoofTexture);
+const movement = new Movement(level);
+const fire = new Fire(level, cheese, vegemite);
+
+
+
+function animate() {
+  const deltaTime = performance.now() - prevTime;
+  requestAnimationFrame(animate);
+  movement.update();
+  fire.update(deltaTime);
+
+  level.renderer.render(level.scene, level.camera);
+  prevTime = performance.now();
+}
+
+let prevTime = performance.now();
+animate();
+
+    </script>
+</body>
+</html>

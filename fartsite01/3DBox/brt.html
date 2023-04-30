@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Shape Control</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const geometries = [
+      new THREE.BoxGeometry(),
+      new THREE.ConeGeometry(1, 2, 4),
+      new THREE.SphereGeometry(1, 32, 32)
+    ];
+
+    const colors = [0xff0000, 0x0000ff, 0x00ff00];
+
+    let shapes = [];
+    let activeShape = createRedCube();
+    scene.add(activeShape);
+    shapes.push(activeShape);
+
+    camera.position.z = 5;
+
+    const moveSpeed = 0.1;
+    const rotationSpeed = 0.05;
+
+    const keyStates = {};
+
+    let clipboard = [];
+
+    function animate() {
+      requestAnimationFrame(animate);
+      applyKeyStates();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    document.addEventListener('keydown', (e) => {
+      keyStates[e.key] = true;
+    });
+
+    document.addEventListener('keyup', (e) => {
+      keyStates[e.key] = false;
+    });
+    function setActiveShape(shapeObject) {
+  shapes.forEach(obj => obj.active = false);
+  shapeObject.active = true;
+  activeShape = shapeObject.shape;
+}
+
+    function applyKeyStates() {
+  shapes.forEach(shapeObject => {
+    const shape = shapeObject.shape;
+    if (!shapeObject.visible || !shapeObject.active) return;
+
+    if (keyStates['w']) shape.position.z -= moveSpeed;
+    if (keyStates['s']) shape.position.z += moveSpeed;
+    if (keyStates['a']) shape.rotation.y -= rotationSpeed;
+    if (keyStates['d']) shape.rotation.y += rotationSpeed;
+    if (keyStates['q']) shape.position.x -= moveSpeed;
+    if (keyStates['e']) shape.position.x += moveSpeed;
+    if (keyStates['z']) shape.position.y -= moveSpeed;
+    if (keyStates['x']) shape.position.y += moveSpeed;
+    if (keyStates['r']) shape.scale.x += 0.1;
+    if (keyStates['f']) shape.scale.x -= 0.1;
+    if (keyStates['t']) shape.scale.z += 0.1;
+    if (keyStates['g']) shape.scale.z -= 0.1;
+    if (keyStates['y']) shape.scale.y += 0.1;
+    if (keyStates['h']) shape.scale.y -= 0.1;
+    if (keyStates['i']) shape.rotation.x -= rotationSpeed;
+    if (keyStates['k']) shape.rotation.x += rotationSpeed;
+    if (keyStates['j']) shape.rotation.z -= rotationSpeed;
+    if (keyStates['l']) shape.rotation.z += rotationSpeed;
+
+    if (keyStates['1']) changeShape(shape, geometries[0]);
+    if (keyStates['2']) changeShape(shape, geometries[1]);
+    if (keyStates['3']) changeShape(shape, geometries[2]);
+    if (keyStates['7']) shape.material.color.set(colors[0]);
+    if (keyStates['8']) shape.material.color.set(colors[1]);
+    if (keyStates['9']) shape.material.color.set(colors[2]);
+  });
+
+// Update the creation of new shapes
+if (keyStates[' ']) {
+  if (!keyStates.prevSpaceState) {
+    activeShape = createRedCube();
+    scene.add(activeShape);
+    activeShapeObject = createShapeObject(activeShape, true);
+    shapes.forEach(obj => obj.active = false);
+    shapes.push(activeShapeObject);
+    addShapeToGUI(activeShapeObject);
+  }
+  keyStates.prevSpaceState = true;
+} else {
+  keyStates.prevSpaceState = false;
+}
+
+    // Update the cloning of shapes
+    if (keyStates['B'] || keyStates['b']) {
+      if (!keyStates.prevAltState) {
+        const cloneShape = cloneWithoutPosition(activeShape);
+        scene.add(cloneShape);
+        const cloneShapeObject = createShapeObject(cloneShape);
+        shapes.push(cloneShapeObject);
+        addShapeToGUI(cloneShapeObject);
+      }
+      keyStates.prevAltState = true;
+    } else {
+      keyStates.prevAltState = false;
+    }
+
+    // Update the clipboard copying
+    if (keyStates['c']) {
+      if (!keyStates.prevCState) {
+        clipboard = shapes.map(shapeObject => createShapeObject(shapeObject.shape.clone()));
+      }
+      keyStates.prevCState = true;
+    } else {
+      keyStates.prevCState = false;
+    }
+
+    // Update the clipboard pasting
+    if (keyStates['v']) {
+      if (!keyStates.prevVState) {
+        clipboard.forEach(cloneObject => {
+          scene.add(cloneObject.shape);
+          shapes.push(cloneObject);
+          addShapeToGUI(cloneObject);
+        });
+      }
+      keyStates.prevVState = true;
+    } else {
+      keyStates.prevVState = false;
+    }
+}
+
+function changeShape(shape, geometry) {
+  if (shape.geometry.type !== geometry.type) {
+    const material = shape.material;
+    scene.remove(shape);
+    const newShape = new THREE.Mesh(geometry, material);
+    scene.add(newShape);
+    const index = shapes.indexOf(shape);
+    if (index > -1) {
+      shapes[index] = newShape;
+    }
+    if (shape === activeShape) {
+      activeShape = newShape;
+    }
+  }
+}
+
+function createRandomShape() {
+  const randomGeometry = geometries[Math.floor(Math.random() * geometries.length)];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  const material = new THREE.MeshBasicMaterial({color: randomColor});
+  const shape = new THREE.Mesh(randomGeometry, material);
+  return shape;
+}
+
+function createRedCube() {
+  const redColor = colors[0];
+  const material = new THREE.MeshBasicMaterial({color: redColor});
+  const shape = new THREE.Mesh(geometries[0], material);
+  return shape;
+}
+
+function cloneWithoutPosition(shape) {
+  const clone = shape.clone();
+  clone.position.set(0, 0, 0);
+  return clone;
+}
+
+   // Create GUI instance
+
+   const gui = new dat.GUI();
+gui.hideable = false;
+
+// Create a custom object for each shape
+function createShapeObject(shape, active = false) {
+  return {
+    shape: shape,
+    visible: true,
+    active: active
+  };
+}
+
+// Create the initial shape object
+let activeShapeObject = createShapeObject(activeShape, true);
+shapes.push(activeShapeObject);
+
+
+// Update the shape object visibility based on the GUI checkbox
+function updateShapeVisibility() {
+  shapes.forEach(shapeObject => {
+    shapeObject.shape.visible = shapeObject.visible;
+  });
+}
+
+function addShapeToGUI(shapeObject) {
+  const shapeFolder = gui.addFolder(`Shape ${shapes.length}`);
+  shapeFolder.add(shapeObject, 'visible').name('Visible').onChange(updateShapeVisibility);
+  shapeFolder.add(shapeObject, 'active').name('Selected').listen().onChange(() => {
+  if (shapeObject.active) {
+    activeShapes.push(shapeObject.shape);
+  } else {
+    const index = activeShapes.indexOf(shapeObject.shape);
+
+  }
+});
+
+}
+
+
+
+// Add the initial shape to the GUI
+addShapeToGUI(activeShapeObject);
+
+
+</script>
+</body>
+</html>

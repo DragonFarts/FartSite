@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .grid {
+      display: grid;  
+      grid-template-columns: repeat(15, 50px);
+      grid-template-rows: repeat(15, 50px);
+      gap: 1px;
+    }
+    .cell {
+      width: 50px;
+      height: 50px;
+      border: 1px solid black;
+    }
+
+    .wall {
+      background-image: url('brickRectsTexture');
+    }
+
+    .floor {
+      background-image: url('whiteWithGrayBitsTexture');
+    }
+
+    .empty {
+      background-image: url('blackWithDarkGrayTriangularGridTexture');
+    }
+
+    .iceblock {
+      background-image: url('cyanBlockWithBlueDiagonalStrokesTexture');
+    }
+
+    .box {
+      background-image: url('lightBrownBoxWithDarkBrownBorderTexture');
+    }
+
+    .target {
+      background-image: url('redBoxWithBlackCircleAndDotTexture');
+    }
+    .target {
+      background-image: url('greBoxWithBlackCircleAndDotTexture');
+    }
+    .player {
+      background-image: url('darkBlueTriangleWithYellowCircleTexture');
+    }
+  </style>
+  <script>
+function generateCanvas(width, height) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function generateBrickRectsTexture() {
+  const canvas = generateCanvas(64, 64);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#B22222";
+  ctx.fillRect(0, 0, 64, 64);
+
+  ctx.strokeStyle = "#8B0000";
+  ctx.lineWidth = 2;
+
+  for (let i = 0; i < 64; i += 32) {
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(64, i);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < 64; i += 32) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, 64);
+    ctx.stroke();
+  }
+
+  return canvas.toDataURL();
+}
+
+function generateWhiteWithGrayBitsTexture() {
+  const canvas = generateCanvas(64, 64);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#555555";
+  ctx.fillRect(0, 0, 64, 64);
+
+  ctx.fillStyle = "#C0C0C0";
+  for (let i = 0; i < 16; i++) {
+    const x = Math.floor(Math.random() * 64);
+    const y = Math.floor(Math.random() * 64);
+    ctx.fillRect(x, y, 4, 4);
+  }
+
+  return canvas.toDataURL();
+}
+
+function generateBlackWithDarkGrayTriangularGridTexture() {
+  const canvas = generateCanvas(64, 64);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, 64, 64);
+
+  ctx.strokeStyle = "#A9A9A9";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i <= 64; i += 16) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, 64);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(64, i);
+    ctx.stroke();
+  }
+
+  return canvas.toDataURL();
+}
+
+function generateCyanBlockWithBlueDiagonalStrokesTexture() {
+  const canvas = generateCanvas(64, 64);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#00FFFF";
+  ctx.fillRect(0, 0, 64, 64);
+
+  ctx.strokeStyle = "#CDDCFF";
+  ctx.lineWidth = 3;
+
+  for (let i = 0; i <= 64; i += 16) {
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(i, 0);
+    ctx.stroke();
+  }
+
+  return canvas.toDataURL();
+}
+
+function generateLightBrownBoxWithDarkBrownBorderTexture() {
+  const canvas = generateCanvas(64, 64);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#CD853F";
+  ctx.fillRect(0, 0, 64, 64);
+
+  ctx.strokeStyle = "#8B4513";
+  ctx.lineWidth = 6;
+  ctx.strokeRect(0, 0, 64, 64);
+
+  return canvas.toDataURL();
+}
+
+function generateRedBoxWithBlackCircleAndDotTexture() {
+  const canvas = generateCanvas(64, 64);
+  const ctx = canvas.getContext("2d");
+
+ctx.fillStyle = "#FF0000";
+ctx.fillRect(0, 0, 64, 64);
+
+ctx.strokeStyle = "#000000";
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.arc(32, 32, 20, 0, 2 * Math.PI);
+ctx.stroke();
+
+ctx.fillStyle = "#000000";
+ctx.beginPath();
+ctx.arc(32, 32, 4, 0, 2 * Math.PI);
+ctx.fill();
+
+return canvas.toDataURL();
+}
+function generateGreBoxWithBlackCircleAndDotTexture() {
+  const canvas = generateCanvas(64, 64);
+  const ctx = canvas.getContext("2d");
+
+ctx.fillStyle = "#00FF00";
+ctx.fillRect(0, 0, 64, 64);
+
+ctx.strokeStyle = "#000000";
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.arc(32, 32, 20, 0, 2 * Math.PI);
+ctx.stroke();
+
+ctx.fillStyle = "#000000";
+ctx.beginPath();
+ctx.arc(32, 32, 4, 0, 2 * Math.PI);
+ctx.fill();
+
+return canvas.toDataURL();
+}
+function generateDarkBlueTriangleWithYellowCircleTexture() {
+const canvas = generateCanvas(64, 64);
+const ctx = canvas.getContext("2d");
+
+ctx.fillStyle = "#00008B";
+ctx.beginPath();
+ctx.moveTo(32, 0);
+ctx.lineTo(50, 50);
+ctx.lineTo(0, 50);
+ctx.closePath();
+ctx.fill();
+
+ctx.fillStyle = "#FFFF00";
+ctx.beginPath();
+ctx.arc(32, 32, 10, 0, 2 * Math.PI);
+ctx.fill();
+
+ctx.fillStyle = "#000000";
+ctx.beginPath();
+ctx.arc(32, 32, 4, 0, 2 * Math.PI);
+ctx.fill();
+
+return canvas.toDataURL();
+}
+
+
+
+
+const initialGrid = [
+      'WWWWWWWWWWWWWWW',
+      'W             W',
+      'W             W',
+      'W TBP B       W',
+      'WFFFFFFF      W',
+      'W             W',
+      'W          BI W',
+      'W      FFFFFFFW',
+      'W             W',
+      'W FFF       F W',
+      'W FFFF      F W',
+      'W FFFFF     F W',
+      'W FFFFFF    F W',
+      'WTFFFFFFF   FTW',
+      'WFFFFFFFFFFFFFW',
+      'WWWWWWWWWWWWWWW',
+    ];
+
+    function createCell(char) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      if (char === 'P') cell.classList.add('player');
+      if (char === 'B') cell.classList.add('box');
+      if (char === 'T') cell.classList.add('target');
+      if (char === 'F') cell.classList.add('floor');
+      if (char === 'I') cell.classList.add('iceblock');
+      if (char === 'W') cell.classList.add('wall');
+      
+      return cell;
+    }
+
+    function toggleIceBlock(player, direction) {
+      const { nextPosition } = calculatePositions(player, direction);
+      if (nextPosition) {
+        if (nextPosition.classList.contains('iceblock')) {
+          nextPosition.classList.remove('iceblock');
+        } else if (isEmpty(nextPosition) || isTarget(nextPosition)) {
+          nextPosition.classList.add('iceblock');
+        }
+      }
+    }
+
+    function renderGrid(gridData) {
+      const grid = document.querySelector('.grid');
+      gridData.forEach(row => {
+        row.split('').forEach(char => {
+          const cell = createCell(char);
+          grid.appendChild(cell);
+        });
+      });
+    }
+
+
+    function calculatePositions(currentPosition, direction) {
+      const index = Array.from(currentPosition.parentNode.children).indexOf(currentPosition);
+      const rowLength = initialGrid[0].length;
+      let newIndex;
+
+      if (direction === 'up') newIndex = index - rowLength;
+      if (direction === 'down') newIndex = index + rowLength;
+      if (direction === 'left') newIndex = index - 1;
+      if (direction === 'right') newIndex = index + 1;
+      if (direction === 'upleft') newIndex = index - rowLength - 1;
+      if (direction === 'upright') newIndex = index - rowLength + 1;
+      if (direction === 'downleft') newIndex = index + rowLength - 1;
+      if (direction === 'downright') newIndex = index + rowLength + 1;
+
+      const nextPosition = currentPosition.parentNode.children[newIndex];
+      const nextNextIndex = newIndex + (newIndex - index);
+      const nextNextPosition = currentPosition.parentNode.children[nextNextIndex];
+
+      return { currentPosition, nextPosition, nextNextPosition };
+    }
+
+    function isEmpty(element) {
+      if (!element) return false;
+      return !element.classList.contains('box') && !element.classList.contains('wall') && !element.classList.contains('floor') && !element.classList.contains('iceblock');
+    }
+
+    function isTarget(element) {
+      return element.classList.contains('target');
+    }
+
+    function isBox(element) {
+      return element.classList.contains('box');
+    }
+
+    function moveBox(oldBoxPosition, newBoxPosition) {
+      if (oldBoxPosition.classList.contains('targetOn')) {
+        oldBoxPosition.classList.remove('targetOn');
+        oldBoxPosition.classList.add('target');
+      } else {
+        oldBoxPosition.classList.remove('box');
+      }
+      if (newBoxPosition.classList.contains('target')) {
+        newBoxPosition.classList.add('targetOn');
+        newBoxPosition.classList.remove('target');
+        newBoxPosition.classList.remove('box'); // Add this line to remove the "B" after activation
+      } else {
+        newBoxPosition.classList.add('box');
+      }
+    }
+
+    function checkWin() {
+      const targets = Array.from(document.querySelectorAll('.target'));
+      return targets.every(target => target.classList.contains('box'));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Use generated textures
+      const brickRectsTexture = generateBrickRectsTexture();
+      const whiteWithGrayBitsTexture = generateWhiteWithGrayBitsTexture();
+      const blackWithDarkGrayTriangularGridTexture = generateBlackWithDarkGrayTriangularGridTexture();
+      const cyanBlockWithBlueDiagonalStrokesTexture = generateCyanBlockWithBlueDiagonalStrokesTexture();
+      const lightBrownBoxWithDarkBrownBorderTexture = generateLightBrownBoxWithDarkBrownBorderTexture();
+      const redBoxWithBlackCircleAndDotTexture = generateRedBoxWithBlackCircleAndDotTexture();
+      const greBoxWithBlackCircleAndDotTexture = generateGreBoxWithBlackCircleAndDotTexture();
+      const darkBlueTriangleWithYellowCircleTexture = generateDarkBlueTriangleWithYellowCircleTexture();
+
+      // Update the CSS classes with the generated textures
+      document.styleSheets[0].addRule('.wall', `background-image: url('${brickRectsTexture}')`);
+      document.styleSheets[0].addRule('.floor', `background-image: url('${whiteWithGrayBitsTexture}')`);
+      document.styleSheets[0].addRule('.empty', `background-image: url('${blackWithDarkGrayTriangularGridTexture}')`);
+      document.styleSheets[0].addRule('.iceblock', `background-image: url('${cyanBlockWithBlueDiagonalStrokesTexture}')`);
+      document.styleSheets[0].addRule('.box', `background-image: url('${lightBrownBoxWithDarkBrownBorderTexture}')`);
+      document.styleSheets[0].addRule('.target', `background-image: url('${redBoxWithBlackCircleAndDotTexture}')`);
+      document.styleSheets[0].addRule('.targetOn', `background-image: url('${greBoxWithBlackCircleAndDotTexture}')`);
+
+      document.styleSheets[0].addRule('.player', `background-image: url('${darkBlueTriangleWithYellowCircleTexture}')`);
+
+      renderGrid(initialGrid);
+
+      const gameLoopInterval = setInterval(gameLoop, 100);
+      function meltIceBlock(iceBlock) {
+        if (!isSupported(iceBlock)) {
+          iceBlock.classList.remove('iceblock');
+
+          const upPosition = calculatePositions(iceBlock, 'up').nextPosition;
+          const downPosition = calculatePositions(iceBlock, 'down').nextPosition;
+          const leftPosition = calculatePositions(iceBlock, 'left').nextPosition;
+          const rightPosition = calculatePositions(iceBlock, 'right').nextPosition;
+
+          if (upPosition && upPosition.classList.contains('iceblock')) {
+            meltIceBlock(upPosition);
+          }
+          if (downPosition && downPosition.classList.contains('iceblock')) {
+            meltIceBlock(downPosition);
+          }
+          if (leftPosition && leftPosition.classList.contains('iceblock')) {
+            meltIceBlock(leftPosition);
+          }
+          if (rightPosition && rightPosition.classList.contains('iceblock')) {
+            meltIceBlock(rightPosition);
+          }
+        }
+      }
+
+      function isSupported(cell, visited = new Set()) {
+        if (visited.has(cell)) return false;
+        visited.add(cell);
+
+        const upPosition = calculatePositions(cell, 'up').nextPosition;
+        const downPosition = calculatePositions(cell, 'down').nextPosition;
+        const leftPosition = calculatePositions(cell, 'left').nextPosition;
+        const rightPosition = calculatePositions(cell, 'right').nextPosition;
+
+        const isSupportingCell = (position) =>
+          position &&
+          (position.classList.contains('fart') ||
+            position.classList.contains('wall') ||
+            position.classList.contains('floor'));
+
+        if (
+          isSupportingCell(upPosition) ||
+          isSupportingCell(downPosition) ||
+          isSupportingCell(leftPosition) ||
+          isSupportingCell(rightPosition)
+        ) {
+          return true;
+        }
+
+        const isConnectedIceBlock = (position) =>
+          position && position.classList.contains('iceblock');
+
+        return (
+          (isConnectedIceBlock(upPosition) && isSupported(upPosition, visited)) ||
+          (isConnectedIceBlock(downPosition) && isSupported(downPosition, visited)) ||
+          (isConnectedIceBlock(leftPosition) && isSupported(leftPosition, visited)) ||
+          (isConnectedIceBlock(rightPosition) && isSupported(rightPosition, visited))
+        );
+      }
+
+      function gameLoop() {
+        const grid = document.querySelector('.grid');
+        const player = grid.querySelector('.player');
+        const boxes = Array.from(grid.querySelectorAll('.box'));
+        const activatedBoxes = Array.from(grid.querySelectorAll('.targetOn')); // Get all activated boxes
+
+        if (isFalling(player)) {
+          const { nextPosition } = calculatePositions(player, 'down');
+          player.classList.remove('player');
+          nextPosition.classList.add('player');
+        }
+
+        boxes.forEach((box) => {
+          if (isFalling(box)) {
+            const { nextPosition } = calculatePositions(box, 'down');
+            moveBox(box, nextPosition);
+          }
+        });
+        const iceBlocks = Array.from(grid.querySelectorAll('.iceblock'));
+
+        iceBlocks.forEach((iceBlock) => {
+          meltIceBlock(iceBlock);
+        });
+        // Update the forEach loop to ignore activated boxes
+        activatedBoxes.forEach((box) => {
+          box.classList.remove('box');
+        });
+
+        if (checkWin()) {
+          alert('You won!');
+          clearInterval(gameLoopInterval);
+        }
+      }
+
+      function isFalling(element) {
+        const { nextPosition } = calculatePositions(element, 'down');
+        const leftPosition = calculatePositions(element, 'left').nextPosition;
+        const rightPosition = calculatePositions(element, 'right').nextPosition;
+        const upPosition = calculatePositions(element, 'up').nextPosition;
+
+        if (element.classList.contains('box')) {
+          if (
+            (upPosition && upPosition.classList.contains('iceblock')) ||
+            (nextPosition &&
+              nextPosition.classList.contains('iceblock') &&
+              (!leftPosition || !leftPosition.classList.contains('iceblock')) &&
+              (!rightPosition || !rightPosition.classList.contains('iceblock')))
+          ) {
+            return false;
+          }
+        }
+
+        return (
+          isEmpty(nextPosition) ||
+          (element.classList.contains('box') && isTarget(nextPosition))
+        );
+      }
+
+      document.addEventListener('keydown', (e) => {
+        const grid = document.querySelector('.grid');
+        const player = grid.querySelector('.player');
+
+        let direction;
+        if (e.key === 'ArrowUp') direction = 'up';
+        if (e.key === 'ArrowDown') direction = 'down';
+        if (e.key === 'ArrowLeft') direction = 'left';
+        if (e.key === 'ArrowRight') direction = 'right';
+
+        if (direction) {
+          const { currentPosition, nextPosition, nextNextPosition } = calculatePositions(player, direction);
+
+          if (isEmpty(nextPosition) || isTarget(nextPosition)) {
+            player.classList.remove('player');
+            nextPosition.classList.add('player');
+          } else if (isBox(nextPosition) && (isEmpty(nextNextPosition) || isTarget(nextNextPosition))) {
+            if (isTarget(nextNextPosition)) {
+              nextNextPosition.classList.remove('target');
+              nextNextPosition.classList.add('targetOn');
+            }
+            moveBox(nextPosition, nextNextPosition);
+            player.classList.remove('player');
+            nextPosition.classList.add('player');
+          }
+        }
+        
+        let iceBlockDirection;
+        if (e.key === 'q') iceBlockDirection = 'upleft';
+        if (e.key === 'w') iceBlockDirection = 'up';
+        if (e.key === 'e') iceBlockDirection = 'upright';
+        if (e.key === 'a') iceBlockDirection = 'left';
+        if (e.key === 'z') iceBlockDirection = 'downleft';
+        if (e.key === 'x') iceBlockDirection = 'down';
+        if (e.key === 'c') iceBlockDirection = 'downright';
+        if (e.key === 'd') iceBlockDirection = 'right';
+
+        if (iceBlockDirection) {
+          toggleIceBlock(player, iceBlockDirection);
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="grid"></div>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        #game-board {
+            width: 320px;
+            height: 320px;
+            border: 1px solid black;
+        }
+        #score {
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        #instructions {
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <p>Use the arrow keys to move the snake around the board and collect the red squares to score points. Be careful not to run into the snake's body, or it's game over!</p>
+    </div>
+    <canvas id="game-board"></canvas>
+    <div id="score">Score: 0</div>
+    <button onclick="pauseGame()">Pause</button>
+    <button onclick="increaseSpeed()">+</button>
+    <button onclick="decreaseSpeed()">-</button>
+    <script>
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 16;
+        let speed = 8;
+        let snake = [{ x: 160, y: 160 }];
+        let direction = 'right';
+        let food = generateFood();
+        let score = 0;
+        let paused = false;
+        let pauseStartTime = null;
+        let pauseEndTime = null;
+        let pauseDuration = 0;
+
+        const audioContext = new AudioContext();
+
+        canvas.width = canvas.height = 320;
+
+        function main() {
+            setTimeout(() => {
+                if (!paused) {
+                    moveSnake();
+                    checkCollision();
+                    eatFood();
+                    draw();
+                }
+                main();
+            }, 1000 / speed);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawSnake();
+            drawFood();
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = 'green';
+            snake.forEach(({ x, y }) => {
+                ctx.fillRect(x, y, gridSize, gridSize);
+                ctx.strokeRect(x, y, gridSize, gridSize);
+            });
+        }
+
+        function drawFood() {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x, food.y, gridSize, gridSize);
+            ctx.strokeRect(food.x, food.y, gridSize, gridSize);
+        }
+
+function moveSnake() {
+  const head = { ...snake[0] };
+  if (direction === 'right') {
+    head.x += gridSize;
+    if (head.x >= canvas.width) {
+      head.x = 0;
+    }
+  }
+  if (direction === 'left') {
+    head.x -= gridSize;
+    if (head.x < 0) {
+      head.x = canvas.width - gridSize;
+    }
+  }
+  if (direction === 'up') {
+    head.y -= gridSize;
+    if (head.y < 0) {
+      head.y = canvas.height - gridSize;
+    }
+  }
+  if (direction === 'down') {
+    head.y += gridSize;
+    if (head.y >= canvas.height) {
+      head.y = 0;
+    }
+  }
+  snake.unshift(head);
+  snake.pop();
+  playMoveSound();
+}
+
+
+const frequencies = [84, 108, 144];
+let currentFrequencyIndex = 0;
+let FOff = 0;
+
+function playMoveSound() {
+    const oscillator = audioContext.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequencies[currentFrequencyIndex] + FOff, audioContext.currentTime);
+    oscillator.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.1);
+
+    currentFrequencyIndex = (currentFrequencyIndex + 1) % frequencies.length; // cycle through frequencies
+}
+
+
+
+
+        function checkCollision() {
+            const [head, ...tail] = snake;
+            if (tail.some(s => s.x === head.x && s.y === head.y)) {
+                snake = [{ x: 160, y: 160 }];
+                direction = 'right';
+                score = 0;
+                updateScore();
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+            oscillator.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.5);
+            speed = 0;
+        }
+
+        function eatFood() {
+            const head = snake[0];
+            if (head.x === food.x && head.y === food.y) {
+                snake.push({});
+                food = generateFood();
+                score += 10;
+                speed += 0.5;
+                updateScore();
+                playEatSound();
+            }
+        }
+
+        function playEatSound() {
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(216, audioContext.currentTime);
+            oscillator.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.2);
+            FOff += 10; // increment FOff by 1 every cycle
+        }
+
+        function generateFood() {
+            const x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
+            const y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
+            return { x, y };
+        }
+
+        function updateScore() {
+            document.getElementById('score').innerText = `Score: ${score}`;
+        }
+
+        function pauseGame() {
+            if (!paused) {
+                paused = true;
+                pauseStartTime = Date.now();
+            } else {
+                paused = false;
+                pauseEndTime = Date.now();
+                pauseDuration += pauseEndTime - pauseStartTime;
+            }
+        }
+
+        function increaseSpeed() {
+            speed += 2;
+        }
+
+        function decreaseSpeed() {
+            if (speed > 2) {
+                speed -= 2;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if (key === 'ArrowRight' && direction !== 'left') direction = 'right';
+            if (key === 'ArrowLeft' && direction !== 'right') direction = 'left';
+            if (key === 'ArrowUp' && direction !== 'down') direction = 'up';
+            if (key === 'ArrowDown' && direction !== 'up') direction = 'down';
+        });
+
+        main();
+    </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GORILLA.BAS</title>
+    <style>
+        body {
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+            color: #000;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin: 0 auto;
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+        }
+        .building {
+            display: inline-block;
+            background-color: #696969;
+            width: 100px;
+            height: 200px;
+            margin: 0 5px;
+            position: relative;
+        }
+        .gorilla {
+            display: inline-block;
+            background-color: #FFD700;
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            top: -30px;
+        }
+        .info {
+            margin: 20px;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let currentPlayer = 0;
+            let playerAngles = [45, 45];
+            let playerVelocities = [132, 132];
+
+            const playerInfo = document.querySelector('#player-info');
+            const angleInfo = document.querySelector('#angle-info');
+            const velocityInfo = document.querySelector('#velocity-info');
+
+            function updateInfo() {
+                playerInfo.textContent = `Player: ${currentPlayer + 1}`;
+                angleInfo.textContent = `Angle: ${playerAngles[currentPlayer]}°`;
+                velocityInfo.textContent = `Velocity: ${playerVelocities[currentPlayer]}`;
+            }
+
+            updateInfo();
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'w' || event.key === 'W') {
+                    playerVelocities[currentPlayer] += 1;
+                } else if (event.key === 's' || event.key === 'S') {
+                    playerVelocities[currentPlayer] -= 1;
+                } else if (event.key === 'a' || event.key === 'A') {
+                    playerAngles[currentPlayer] -= 1;
+                } else if (event.key === 'd' || event.key === 'D') {
+                    playerAngles[currentPlayer] += 1;
+                } else if (event.key === ' ' || event.key === 'Spacebar') {
+                    fire(currentPlayer, playerAngles[currentPlayer], playerVelocities[currentPlayer]);
+                    currentPlayer = (currentPlayer + 1) % 2;
+                }
+                updateInfo();
+            });
+
+            function createProjectile(player) {
+    const projectile = document.createElement('div');
+    projectile.style.backgroundColor = '#FFD700';
+    projectile.style.border = '1px solid #000';
+    projectile.style.width = '10px';
+    projectile.style.height = '10px';
+    projectile.style.position = 'absolute';
+    projectile.style.zIndex = '10';
+
+    const gorilla = document.querySelectorAll('.gorilla')[player];
+    const gorillaRect = gorilla.getBoundingClientRect();
+    projectile.style.left = `${gorillaRect.x + gorillaRect.width / 2}px`;
+    projectile.style.top = `${gorillaRect.y}px`;
+
+    document.body.appendChild(projectile);
+    return projectile;
+}
+
+function fire(player, angle, velocity) {
+    console.log(`Player ${player + 1} fired at angle: ${angle} and velocity: ${velocity}`);
+    
+    const projectile = createProjectile(player);
+    const gravity = 9.81;
+    const radianAngle = angle * (Math.PI / 180);
+    const timeStep = 0.01;
+
+    let xPos = 0;
+    let yPos = 0;
+    let t = 0;
+
+    function updateProjectile() {
+    t += timeStep;
+
+    xPos = (velocity * Math.cos(radianAngle) * t) * (player === 0 ? 1 : -1);
+    yPos = (velocity * Math.sin(radianAngle) * t) - (0.5 * gravity * Math.pow(t, 2));
+
+    const gorilla = document.querySelectorAll('.gorilla')[player];
+    const gorillaRect = gorilla.getBoundingClientRect();
+    const newX = gorillaRect.x + gorillaRect.width / 2 + xPos;
+    const newY = gorillaRect.y - yPos;
+
+    projectile.style.left = `${newX}px`;
+    projectile.style.top = `${newY}px`;
+
+    if (newY > window.innerHeight) {
+        document.body.removeChild(projectile);
+    } else {
+        requestAnimationFrame(updateProjectile);
+    }
+}
+
+
+    requestAnimationFrame(updateProjectile);
+}
+        });
+    </script>
+</head>
+<body>
+    <canvas id="game-canvas" width="100%" height="100%"></canvas>
+
+    <div class="info">
+        <p id="player-info"></p>
+        <p id="angle-info"></p>
+        <p id="velocity-info"></p>
+    </div>
+    <div class="container">
+        <div class="building">
+            <div class="gorilla"></div>
+        </div>
+        <div class="building"></div>
+        <div class="building"></div>
+        <div class="building"></div>
+        <div class="building">
+            <div class="building">
+                <div class="gorilla"></div>
+            </div>
+        </div>
+    </body>
+    </html>
+    

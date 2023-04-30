@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logic Solving Game</title>
+<style>
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: #f0f0f0;
+  flex-wrap: wrap;
+}
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(62, 20px);
+    grid-template-rows: repeat(62, 20px);
+    gap: 2px;
+  }
+  .cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+    position: relative;
+  }
+  .item {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+  }
+  .player {
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 20px solid #000000;
+  }
+  .land {
+    background-color: #00ff00;
+  }
+  .river {
+    background-color: #0000ff;
+  }
+  .bridge {
+    background-color: #8efdbc;
+  }
+  .fibre {
+  color: brown;
+  font-weight: bold;
+}
+
+.rock {
+  color: gray;
+  font-weight: bold;
+}
+
+.scav {
+  color: orange;
+  font-weight: bold;
+}
+#inventory {
+  font-family: monospace;
+  font-size: 16px;
+}
+
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
+</head>
+<body>
+  <label for="seed">Seed:</label>
+  <input type="text" id="seed" value="level01">
+  <button onclick="generateGrid()">Generate</button>
+  <div class="grid"></div>
+  <div id="inventory" style="margin-left: 16px;">
+    <div>Fibre = <span id="fibreCount">0000</span></div>
+    <div>Rock = <span id="rockCount">0000</span></div>
+    <div>Scav = <span id="scavCount">0000</span></div>
+  </div>
+  <div style="margin-top: 16px; font-weight: bold;">Crafts</div>
+<div>Boats = <span id="boatCount">000</span></div>
+<div>Arrows = <span id="arrowCount">000</span></div>
+<div>Bombs = <span id="bombCount">000</span></div>
+<div>Food = <span id="foodCount">0000</span></div>
+
+
+  <script>
+    const grid = document.querySelector('.grid');
+    const player = document.createElement('div');
+    player.classList.add('player');
+    let playerPosition = { x: 31, y: 31 };
+
+const playerInventory = {
+  fibre: 0,
+  rock: 0,
+  scav: 0,
+  boats: 0,
+  arrows: 0,
+  bombs: 0,
+  food: 0,
+};
+function updateInventoryDisplay() {
+  document.getElementById('fibreCount').textContent = playerInventory.fibre.toString().padStart(4, '0');
+  document.getElementById('rockCount').textContent = playerInventory.rock.toString().padStart(4, '0');
+  document.getElementById('scavCount').textContent = playerInventory.scav.toString().padStart(4, '0');
+  document.getElementById('boatCount').textContent = playerInventory.boats.toString().padStart(3, '0');
+  document.getElementById('foodCount').textContent = playerInventory.food.toString().padStart(4, '0');
+  document.getElementById('arrowCount').textContent = playerInventory.arrows.toString().padStart(3, '0');
+  document.getElementById('bombCount').textContent = playerInventory.bombs.toString().padStart(3, '0');
+}
+
+function craftItem(key) {
+  let crafted = false;
+  switch (key) {
+    case '1':
+      if (playerInventory.fibre >= 15) {
+        playerInventory.fibre -= 15;
+        playerInventory.boats += Math.floor(Math.random() * 21) + 1;
+        crafted = true;
+      }
+      break;
+      case '2':
+  if (playerInventory.scav >= 21) {
+    playerInventory.scav -= 21;
+    playerInventory.food += Math.floor(Math.random() * 3) + 1;
+    crafted = true;
+  }
+  break;
+
+    case '7':
+      if (playerInventory.fibre >= 1 && playerInventory.rock >= 5) {
+        playerInventory.fibre -= 1;
+        playerInventory.rock -= 5;
+        playerInventory.arrows += Math.floor(Math.random() * 61) + 30;
+        crafted = true;
+      }
+      break;
+    case '8':
+      if (playerInventory.rock >= 5 && playerInventory.fibre >= 1) {
+        playerInventory.rock -= 5;
+        playerInventory.fibre -= 1;
+        playerInventory.bombs += Math.floor(Math.random() * 7) + 1;
+        crafted = true;
+      }
+      break;
+  }
+
+  if (crafted) {
+    updateInventoryDisplay();
+  }
+}
+
+
+
+
+function movePlayer(x, y) {
+  const newPosition = {
+    x: playerPosition.x + x,
+    y: playerPosition.y + y,
+  };
+  const newIndex = newPosition.y * 62 + newPosition.x;
+  const newItem = grid.children[newIndex].dataset.type;
+
+  // Prevent moving on river cells
+  if (newItem === 'river') return;
+
+  // Add logic for handling other item types here
+  if (newItem === 'land' || newItem === 'bridge') {
+    const itemType = grid.children[newIndex].dataset.item;
+    const itemAmount = parseInt(grid.children[newIndex].dataset.amount, 10);
+    if (itemType) {
+      playerInventory[itemType] += itemAmount;
+      updateInventoryDisplay();
+      grid.children[newIndex].dataset.item = '';
+      grid.children[newIndex].dataset.amount = '0';
+      grid.children[newIndex].querySelector('.item').remove();
+    }
+  }
+
+  grid.children[playerPosition.y * 62 + playerPosition.x].classList.remove('player');
+  playerPosition = newPosition;
+  grid.children[newIndex].appendChild(player);
+}
+
+
+
+// New functions
+function findIslandEdges() {
+  const edges = [];
+  for (let y = 1; y < 61; y++) {
+    for (let x = 1; x < 61; x++) {
+      const cell = grid.children[y * 62 + x];
+      if (cell.dataset.type === 'land') {
+        const left = x > 0 && grid.children[y * 62 + (x - 1)].dataset.type === 'river';
+        const right = x < 61 && grid.children[y * 62 + (x + 1)].dataset.type === 'river';
+        const top = y > 0 && grid.children[(y - 1) * 62 + x].dataset.type === 'river';
+        const bottom = y < 61 && grid.children[(y + 1) * 62 + x].dataset.type === 'river';
+
+        if (left || right || top || bottom) {
+          edges.push({ x, y });
+        }
+      }
+    }
+  }
+  return edges;
+}
+
+function isLand(x, y) {
+  if (x < 0 || x > 61 || y < 0 || y > 61) return false;
+  return grid.children[y * 62 + x].dataset.type === 'land';
+}
+
+function nearestIsland(x, y, visited) {
+  const queue = [{ x, y, dist: 0 }];
+  visited[y][x] = true;
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const { x: curX, y: curY, dist } = current;
+
+    for (const [dx, dy] of [
+      [0, 1],
+      [1, 0],
+      [0, -1],
+      [-1, 0],
+    ]) {
+      const newX = curX + dx;
+      const newY = curY + dy;
+
+      if (isLand(newX, newY)) {
+        return { x: newX, y: newY, dist: dist + 1 };
+      }
+
+      if (
+        newX >= 0 && newX <= 61 &&
+        newY >= 0 && newY <= 61 &&
+        !visited[newY][newX] &&
+        grid.children[newY * 62 + newX].dataset.type === 'river'
+      ) {
+        visited[newY][newX] = true;
+        queue.push({ x: newX, y: newY, dist: dist + 1 });
+      }
+    }
+  }
+
+  return null;
+}
+
+function createBridge(x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+  for (let i = 1; i <= steps; i++) {
+    const x = x1 + Math.round((dx * i) / steps);
+    const y = y1 + Math.round((dy * i) / steps);
+    const cell = grid.children[y * 62 + x];
+    cell.dataset.type = 'bridge';
+    cell.classList.remove('river');
+    cell.classList.add('bridge');
+  }
+}
+
+function generateGrid() {
+  const seedInput = document.getElementById('seed');
+  const seed = seedInput.value || 'level01';
+  const noise = new SimplexNoise(seed);
+  grid.innerHTML = '';
+
+// Generate land and water
+for (let y = 0; y < 62; y++) {
+  for (let x = 0; x < 62; x++) {
+    const noiseValue = noise.noise2D(x * 0.1, y * 0.1);
+    let cellType = noiseValue > 0 ? 'land' : 'river';
+
+    if (x === 31 && y === 31) {
+      cellType = 'land'; // Ensure the middle is always land
+    }
+
+    const cell = document.createElement('div');
+    cell.className = `cell ${cellType}`;
+    cell.dataset.x = x;
+    cell.dataset.y = y;
+    cell.dataset.type = cellType;
+    grid.appendChild(cell);
+
+    // Place items based on seed
+    const itemValue = noise.noise2D((x + 100) * 0.1, (y + 100) * 0.1);
+    const itemThreshold = 0.54;
+    const itemSpan = document.createElement('span');
+    itemSpan.classList.add('item');
+    if (itemValue > itemThreshold) {
+      if (itemValue > itemThreshold + 0.05) {
+        itemSpan.textContent = 'S';
+        itemSpan.classList.add('scav');
+        cell.dataset.item = 'scav';
+        cell.dataset.amount = Math.ceil(Math.random() * 3);
+      } else if (itemValue > itemThreshold + 0.03) {
+
+        itemSpan.textContent = 'F';
+        itemSpan.classList.add('fibre');
+        cell.dataset.item = 'fibre';
+        cell.dataset.amount = Math.ceil(Math.random() * 3);
+      } else {
+        itemSpan.textContent = 'R';
+        itemSpan.classList.add('rock');
+        cell.dataset.item = 'rock';
+        cell.dataset.amount = Math.ceil(Math.random() * 3);
+      }
+      cell.appendChild(itemSpan);
+    }
+  }
+}
+
+  // Find island edges and connect them with bridges
+  const islandEdges = findIslandEdges();
+  const visited = Array.from({ length: 62 }, () => Array(62).fill(false));
+
+  for (const edge of islandEdges) {
+    if (!visited[edge.y][edge.x]) {
+      const nearest = nearestIsland(edge.x, edge.y, visited);
+      if (nearest) {
+        createBridge(edge.x, edge.y, nearest.x, nearest.y);
+      }
+    }
+  }
+
+  // Initialize player position
+  movePlayer(0, 0);
+}
+
+
+
+
+
+
+
+
+
+// Listen for WASD and QEZX keypresses
+document.addEventListener('keydown', (e) => {
+  switch (e.key.toLowerCase()) {
+    case 'w': // Up
+      if (playerPosition.y > 0) movePlayer(0, -1);
+      break;
+    case 'x': // Down
+      if (playerPosition.y < 61) movePlayer(0, 1);
+      break;
+    case 'a': // Left
+      if (playerPosition.x > 0) movePlayer(-1, 0);
+      break;
+    case 'd': // Right
+      if (playerPosition.x < 61) movePlayer(1, 0);
+      break;
+    case 'q': // Up Left
+      if (playerPosition.y > 0 && playerPosition.x > 0) movePlayer(-1, -1);
+      break;
+    case 'e': // Up Right
+      if (playerPosition.y > 0 && playerPosition.x < 61) movePlayer(1, -1);
+      break;
+    case 'z': // Down Left
+      if (playerPosition.y < 61 && playerPosition.x > 0) movePlayer(-1, 1);
+      break;
+    case 'c': // Down Right
+      if (playerPosition.y < 61 && playerPosition.x < 61) movePlayer(1, 1);
+      break;
+  }
+    // Crafting keys
+    if (['1', '2', '7', '8'].includes(e.key)) {
+    craftItem(e.key);
+  }
+    });
+
+    // Generate the initial grid
+    generateGrid();
+  </script>
+</body>
+</html>

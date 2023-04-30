@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pong</title>
+    <style>
+      canvas {
+        border: 1px solid white;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <script>
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let ballX = canvas.width / 2;
+      let ballY = canvas.height / 2;
+      let ballSpeedX = -0.5;
+      let ballSpeedY = -0.5;
+
+      let leftPaddleY = canvas.height / 2 - 25;
+
+      let lSpeed = 0;
+      let rSpeed = 0;
+
+      class AIPaddle {
+        constructor() {
+          this.w = 10;
+          this.h = 50;
+          this.c = 'white';
+          this.y = canvas.height / 2 - this.h / 2;
+        }
+
+        update() {
+          if (ballY < this.y + this.h / 2) {
+            this.y -= 5;
+          }
+          else if (ballY > this.y + this.h / 2) {
+            this.y += 5;
+          }
+        }
+
+        draw() {
+          ctx.fillStyle = this.c;
+          ctx.fillRect(canvas.width - 30, this.y, this.w, this.h);
+        }
+      }
+
+      const aiPaddle = new AIPaddle();
+
+      function move() {
+        leftPaddleY += lSpeed;
+        aiPaddle.update();
+
+        if (aiPaddle.y < 0) {
+          aiPaddle.y = 0;
+        }
+        if (aiPaddle.y > canvas.height - 50) {
+          aiPaddle.y = canvas.height - 50;
+        }
+      }
+
+      function handleKeys() {
+        window.addEventListener('keydown', event => {
+          if (event.key === 'ArrowUp') {
+            lSpeed = -2;
+          }
+          if (event.key === 'ArrowDown') {
+            lSpeed = 2;
+          }
+          if (event.key === 'p') {
+            rSpeed = 0;
+          }
+        });
+
+        window.addEventListener('keyup', event => {
+          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            lSpeed = 0;
+          }
+          if (event.key === 'p') {
+            rSpeed = 5;
+          }
+        });
+      }
+
+      function draw() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'white';
+        ctx.fillRect(20, leftPaddleY, 10, 50);
+        aiPaddle.draw();
+
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, 5, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ballX += ballSpeedX;
+        ballY += ballSpeedY;
+
+        if (ballY < 0 || ballY > canvas.height) {
+          ballSpeedY = -ballSpeedY;
+          
+        }
+
+        if (ballX < 30 && ballY > leftPaddleY && ballY < leftPaddleY + 50) {
+            ballSpeedX = -ballSpeedX;
+      
+    }
+    if (ballX > canvas.width - 30 && ballY > aiPaddle.y && ballY < aiPaddle.y + 50) {
+      ballSpeedX = -ballSpeedX;
+      
+    }
+
+    move();
+
+    if (ballX < 0 || ballX > canvas.width) {
+      alert('Game over!');
+      location.reload();
+    }
+
+
+
+    requestAnimationFrame(draw);
+  }
+
+
+
+
+
+
+
+  handleKeys();
+  draw();
+
+</script>
+  </body>
+</html>

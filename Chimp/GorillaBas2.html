@@ -1,0 +1,288 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <title>Gorilla.BAS Clone</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+    // Variables to store game elements
+    let player1, player2;
+    let angle, velocity;
+    let currentPlayer;
+    let buildings = [];
+    let banana;
+    let explosion;
+    // Add gravity constant
+    const GRAVITY = 0.2;
+    let pg;
+
+    function setup() {
+    createCanvas(800, 600);
+    pg = createGraphics(800, 600);
+
+    angle = 45;
+    velocity = 5;
+    currentPlayer = 1;
+
+    // Initialize players and buildings
+    player1 = new Player(100, 300);
+    player2 = new Player(700, 300);
+    
+    generateBuildings();
+    
+    }
+
+    function draw() {
+    background(0);
+
+    // Display game info
+    textSize(16);
+    fill(255);
+    text(`Player ${currentPlayer}: Angle = ${angle}, Velocity = ${velocity}`, 10, 20);
+
+    // Update and display game elements
+    player1.show();
+    player2.show();
+    displayBuildings();
+    image(pg, 0, 0);
+
+    if (banana) {
+        banana.update();
+        banana.show();
+
+        if (bananaHitsBuilding(banana) || bananaHitsPlayer(banana) || isBananaOffScreen(banana)) {
+        // Create explosion if banana hits a building or a player
+        if (bananaHitsBuilding(banana) || bananaHitsPlayer(banana)) {
+            explosion = new Explosion(banana.position.x, banana.position.y);
+        }
+        banana = null;
+        togglePlayer(); // Call togglePlayer() when the banana hits an obstacle or goes off-screen
+        
+        }
+    }
+
+    if (explosion) {
+        explosion.update();
+        explosion.show();
+
+        // Remove overlapping buildings
+        buildings = buildings.filter((building) => !building.isOverlapping(explosion));
+
+        if (explosion.finished) {
+        explosion = null;
+        
+        }
+    }
+    }
+    function isBananaOffScreen(banana) {
+    return banana.position.x < 0 || banana.position.x > width || banana.position.y < 0 || banana.position.y > height;
+    
+    }
+
+    function togglePlayer() {
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+
+    }
+
+    function throwBanana() {
+        
+
+    if (!banana) {
+        const player = currentPlayer === 1 ? player1 : player2;
+        const angleRadians = radians(angle);
+        const direction = currentPlayer === 1 ? 1 : -1;
+        const bananaX = player.position.x + cos(angleRadians) * 20 * direction;
+        const bananaY = player.position.y - sin(angleRadians) * 20;
+        banana = new Banana(bananaX, bananaY, angleRadians, velocity, direction);
+    }
+    }
+
+    function bananaHitsBuilding(banana) {
+  for (const building of buildings) {
+    const bufferX = banana.position.x - building.position.x;
+    const bufferY = banana.position.y - building.position.y;
+
+    if (bufferX >= 0 && bufferX < building.width &&
+        bufferY >= 0 && bufferY < building.height) {
+      const c = pg.get(building.position.x + bufferX, building.position.y + bufferY);
+      if (alpha(c) > 0) {
+        // Create a hole in the building
+        const explosion = new Explosion(banana.position.x, banana.position.y);
+        building.createHole(explosion);
+
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
+
+
+    // Update bananaHitsPlayer function
+    function bananaHitsPlayer(banana) {
+    const players = [player1, player2];
+    const radius = 15;
+
+    for (const player of players) {
+        const distance = dist(banana.position.x, banana.position.y, player.position.x, player.position.y);
+        if (distance < radius) {
+        console.log("Game over for Player", currentPlayer);
+        // Implement game over logic
+        return true;
+        }
+    }
+    return false;
+    }
+
+    function keyPressed() {
+        
+    if (key === ' ') {
+        throwBanana();
+        
+    } else if (key === 'W') {
+        velocity += 1;
+    } else if (key === 'S') {
+        velocity -= 1;
+    } else if (key === 'A') {
+        angle -= 1;
+    } else if (key === 'D') {
+        angle += 1;
+    } 
+    }
+
+    class Player {
+    constructor(x, y) {
+        this.position = createVector(x, y);
+    }
+
+    show() {
+        push();
+        fill(205, 133, 63);
+        triangle(this.position.x - 10, this.position.y, this.position.x, this.position.y - 20, this.position.x + 10, this.position.y);
+        pop();
+    }
+    }
+
+    // Update Banana class
+    class Banana {
+    constructor(x, y, angle, velocity, direction) {
+        this.position = createVector(x, y);
+        this.velocity = createVector(direction * cos(angle) * velocity, -sin(angle) * velocity);
+    }
+
+    update() {
+        this.position.add(this.velocity);
+        this.velocity.y += GRAVITY;
+    }
+
+    show() {
+        push();
+        fill(255, 255, 0);
+        stroke(0);
+        rect(this.position.x, this.position.y, 10, 10);
+        pop();
+    }
+    }
+    function generateBuildings() {
+    const buildingWidth = 80;
+    const buildingCount = width / buildingWidth;
+
+    for (let i = 0; i < buildingCount; i++) {
+        const x = i * buildingWidth;
+        const y = random(height * 0.6, height * 0.9);
+        const buildingHeight = height - y;
+        buildings.push(new Building(x, y, buildingWidth, buildingHeight));
+    }
+    }
+
+    function displayBuildings() {
+    for (const building of buildings) {
+        building.show();
+    }
+    }
+    // Update Building class
+    class Building {
+    constructor(x, y, width, height) {
+        this.position = createVector(x, y);
+        this.width = width;
+        this.height = height;
+    }
+    createHole(explosion) {
+  const centerX = explosion.position.x;
+  const centerY = explosion.position.y;
+  const radius = explosion.radius;
+
+  pg.erase();
+  pg.ellipse(centerX, centerY, radius * 2, radius * 2);
+  pg.noErase();
+}
+
+    show() {
+        push();
+        fill(100, 100, 255);
+        rect(this.position.x, this.position.y, this.width, this.height);
+        pop();
+    }
+    isOverlapping(explosion) {
+        const left = this.position.x;
+        const right = this.position.x + this.width;
+        const top = this.position.y;
+        const bottom = this.position.y + this.height;
+
+        const centerX = explosion.position.x;
+        const centerY = explosion.position.y;
+        const radius = explosion.radius;
+
+        const closestX = constrain(centerX, left, right);
+        const closestY = constrain(centerY, top, bottom);
+
+        const distance = dist(centerX, centerY, closestX, closestY);
+
+        return distance <= radius;
+    }
+    show() {
+        pg.fill(100, 100, 255);
+        pg.rect(this.position.x, this.position.y, this.width, this.height);
+    }
+    }
+
+
+
+    // Update Explosion class
+    class Explosion {
+    constructor(x, y) {
+        this.position = createVector(x, y);
+        this.radius = 0;
+        this.growthRate = 2;
+        this.maxRadius = 50;
+        this.finished = false;
+    }
+
+    update() {
+        if (this.radius < this.maxRadius) {
+        this.radius += this.growthRate;
+        } else {
+        // Remove overlapping pixels
+        pg.erase();
+        pg.ellipse(this.position.x, this.position.y, this.radius * 2, this.radius * 2);
+        pg.noErase();
+        this.finished = true;
+        }
+    }
+
+    show() {
+        push();
+        fill(255, 0, 0);
+        ellipse(this.position.x, this.position.y, this.radius * 2, this.radius * 2);
+        pop();
+    }
+    
+    }
+
+    </script>
+    </head>
+    <body>
+    </body>
+    </html>

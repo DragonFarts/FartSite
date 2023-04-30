@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+let pg;
+let bombs = [];
+let gravity = 0.15;
+let explosionRadius = 27;
+let player;
+
+function setup() {
+  createCanvas(800, 600);
+  pg = createGraphics(width, height);
+  pg.background(255);
+
+  pg.noStroke();
+  pg.fill(0);
+  pg.rect(0, height - 250, width, 250);
+
+  player = new Player(400, height - 300, 20, 20);
+
+  // Create input fields for angle and velocity
+  createInputFields();
+}
+class Player {
+  constructor(x, y, width, height) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.velocityY = 0;
+    this.speed = 3;
+    this.onGround = false;
+  }
+
+  update() {
+    this.velocityY += gravity;
+    this.y += this.velocityY;
+
+    if (keyIsDown(65)) {
+      this.x -= this.speed; // Move left
+    }
+
+    if (keyIsDown(68)) {
+      this.x += this.speed; // Move right
+    }
+
+    this.checkCollision();
+
+    if (this.onGround) {
+      this.velocityY = 0;
+    } else {
+      this.velocityY = Math.min(this.velocityY, 10);
+    }
+  }
+
+  show() {
+    fill(0, 255, 0);
+    rect(this.x, this.y, this.width, this.height);
+  }
+
+  checkCollision() {
+  const points = [
+    { x: this.x, y: this.y },
+    { x: this.x + this.width, y: this.y },
+    { x: this.x, y: this.y + this.height },
+    { x: this.x + this.width, y: this.y + this.height },
+  ];
+
+  let collision = false;
+  let yDiff = Infinity;
+  for (const point of points) {
+    const pixel = pg.get(point.x, point.y);
+    if (pixel[0] === 0 && pixel[3] === 255) {
+      collision = true;
+      yDiff = Math.min(yDiff, point.y - this.y);
+    }
+  }
+
+  if (collision) {
+    this.y -= yDiff;
+    this.onGround = true;
+  } else {
+    this.onGround = false;
+  }
+}
+
+
+}
+function draw() {
+  background(255);
+  image(pg, 0, 0);
+
+  player.update();
+  player.show();
+
+  for (let i = 0; i < bombs.length; i++) {
+    let bomb = bombs[i];
+    if (bomb.active) {
+      bomb.update();
+      bomb.show();
+    }
+  }
+}
+
+function mouseClicked() {
+  // Get values from input fields
+  let angle = parseFloat(document.getElementById("angleInput").value);
+  let velocity = parseFloat(document.getElementById("velocityInput").value);
+
+  let bomb = new Bomb(mouseX, mouseY, angle, velocity);
+  bombs.push(bomb);
+}
+
+function createInputFields() {
+  // Create angle input field
+  let angleLabel = createDiv("Angle (degrees):");
+  angleLabel.position(10, height - 220);
+
+  let angleInput = createInput("-72", "number");
+  angleInput.id("angleInput");
+  angleInput.position(10, height - 200);
+
+  // Create velocity input field
+  let velocityLabel = createDiv("Velocity:");
+  velocityLabel.position(10, height - 170);
+
+  let velocityInput = createInput("10", "number");
+  velocityInput.id("velocityInput");
+  velocityInput.position(10, height - 150);
+}
+
+class Bomb {
+  constructor(x, y, angle, velocity) {
+    this.x = x;
+    this.y = y;
+    this.size = 20;
+    this.active = true;
+
+    // Calculate x and y velocity from angle and velocity inputs
+    let radians = angle * Math.PI / 180;
+    this.velocityX = velocity * Math.cos(radians);
+    this.velocityY = velocity * Math.sin(radians);
+  }
+
+  update() {
+    this.velocityY += gravity;
+    this.x += this.velocityX;
+    this.y += this.velocityY;
+
+    // Check if the bomb hits the terrain
+    let pixel = pg.get(this.x, this.y + this.size / 2);
+    if (pixel[0] === 0 && pixel[3] === 255) {
+      this.y = (Math.floor(this.y / 10) + 1) * 10 - this.size / 2;
+      this.explode();
+      this.active = false;
+    }
+  }
+
+  show() {
+    fill(0);
+    rect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+  }
+
+  explode() {
+    pg.loadPixels();
+    for (let x = this.x - explosionRadius; x < this.x + explosionRadius; x++) {
+      for (let y = this.y - explosionRadius; y < this.y + explosionRadius; y++) {
+        if (dist(x, y, this.x, this.y) <= explosionRadius) {
+          let index = (x + y * width) * 4;
+          if (pg.pixels[index] === 0) {
+            pg.pixels[index + 3] = 0;
+          }
+        }
+      }
+    }
+    pg.updatePixels();
+
+    // Draw visual explosion effect
+    pg.fill(255, 0, 0, 100);
+    pg.ellipse(this.x, this.y, explosionRadius * 2);
+    setTimeout(() => {
+      pg.fill(255);
+      pg.ellipse(this.x, this.y, explosionRadius * 2);
+    }, 100);
+  }
+}
+</script>
+  </head>
+  <body>
+  </body>
+</html>

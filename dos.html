@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSDOS-like Interface</title>
+    <style>
+        body, input {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #00FF00;
+            background-color: black;
+            margin: 0;
+            padding: 0;
+            border: none;
+            outline: none;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            width: 800px;
+            height: 600px;
+            border: 1px solid #00FF00;
+            padding: 10px;
+            overflow: auto;
+        }
+
+        #input-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+
+        #input {
+            flex: 1;
+            background-color: transparent;
+            caret-color: transparent;
+            padding-left: 40px;
+        }
+
+        .prompt {
+            position: absolute;
+            left: 0;
+        }
+
+        .cursor {
+            position: absolute;
+            left: 40px;
+            background-color: #00FF00;
+            width: 8px;
+            height: 16px;
+            animation: blink 1s step-end infinite;
+        }
+
+        #text-measure {
+            position: absolute;
+            visibility: hidden;
+            white-space: pre;
+        }
+
+        @keyframes blink {
+            from, to {
+                background-color: transparent;
+            }
+            50% {
+                background-color: #00FF00;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="output"></div>
+        <div id="input-container">
+            <input id="input" type="text" autofocus />
+            <span class="prompt">C:\></span>
+            <div class="cursor"></div>
+            <span id="text-measure"></span>
+        </div>
+    </div>
+    <script src="msdros.js"></script>
+    <script src="commands.js"></script>
+
+</body>
+</html>
